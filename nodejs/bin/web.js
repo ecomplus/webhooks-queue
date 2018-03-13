@@ -49,81 +49,85 @@ app.post('/add-to-queue.json', (req, res) => {
     } else {
       // connected
       // first check on body
-      // URI is needed
-      let uri = req.body.uri
-      if (typeof uri === 'string' && uriPattern.test(uri)) {
-        // mount row data
-        let storeId = req.body.store_id
-        if (typeof storeId === 'string') {
-          storeId = parseInt(storeId, 10)
-        }
-        if (typeof storeId !== 'number' || isNaN(storeId)) {
-          // Store ID cannot be null
-          // random number
-          storeId = Math.floor(Math.random() * 1000)
-        }
+      if (typeof req.body === 'object' && req.body !== null) {
+        // URI is needed
+        let uri = req.body.uri
+        if (typeof uri === 'string' && uriPattern.test(uri)) {
+          // mount row data
+          let storeId = req.body.store_id
+          if (typeof storeId === 'string') {
+            storeId = parseInt(storeId, 10)
+          }
+          if (typeof storeId !== 'number' || isNaN(storeId)) {
+            // Store ID cannot be null
+            // random number
+            storeId = Math.floor(Math.random() * 1000)
+          }
 
-        let triggerId = req.body.trigger_id
-        if (typeof triggerId !== 'string') {
-          // default arbitrary trigger ID
-          triggerId = 't'
-        }
+          let triggerId = req.body.trigger_id
+          if (typeof triggerId !== 'string') {
+            // default arbitrary trigger ID
+            triggerId = 't'
+          }
 
-        // mount query
-        let cql = 'INSERT INTO queue (trigger_id, store_id, uri'
-        let escape = [ triggerId, storeId, uri ]
-        for (let prop in req.body) {
-          if (req.body.hasOwnProperty(prop)) {
-            let value = req.body[prop]
-            let valid = true
+          // mount query
+          let cql = 'INSERT INTO queue (trigger_id, store_id, uri'
+          let escape = [ triggerId, storeId, uri ]
+          for (let prop in req.body) {
+            if (req.body.hasOwnProperty(prop)) {
+              let value = req.body[prop]
+              let valid = true
 
-            // test valid table columns
-            switch (prop) {
-              case 'method':
-                // should be string
-                // just continue
-                break
-              case 'headers':
-              case 'body':
-                // can come as object
-                if (typeof value === 'object') {
-                  // convert to string
-                  value = JSON.stringify(value)
-                }
-                break
-              default:
-                valid = false
-            }
+              // test valid table columns
+              switch (prop) {
+                case 'method':
+                  // should be string
+                  // just continue
+                  break
+                case 'headers':
+                case 'body':
+                  // can come as object
+                  if (typeof value === 'object') {
+                    // convert to string
+                    value = JSON.stringify(value)
+                  }
+                  break
+                default:
+                  valid = false
+              }
 
-            if (valid === true && typeof value === 'string') {
-              // complete cql query string
-              cql += ', ' + prop
-              // add param
-              escape.push(value)
+              if (valid === true && typeof value === 'string') {
+                // complete cql query string
+                cql += ', ' + prop
+                // add param
+                escape.push(value)
+              }
             }
           }
-        }
-        cql += ', date_time) VALUES(?'
-        for (let i = 0; i < escape.length - 1; i++) {
-          cql += ', ?'
-        }
-        cql += ', toTimestamp(now())) IF NOT EXISTS'
-
-        // insert on database
-        conn.execute(cql, escape, { prepare: true }, function (err, results) {
-          if (err) {
-            errorResponse(res, 11, 500)
-            logger.error(err)
-          } else {
-            // end request
-            res.status(201)
-            res.json({
-              'ok': true
-            })
+          cql += ', date_time) VALUES(?'
+          for (let i = 0; i < escape.length - 1; i++) {
+            cql += ', ?'
           }
-        })
+          cql += ', toTimestamp(now())) IF NOT EXISTS'
+
+          // insert on database
+          conn.execute(cql, escape, { prepare: true }, function (err, results) {
+            if (err) {
+              errorResponse(res, 11, 500)
+              logger.error(err)
+            } else {
+              // end request
+              res.status(201)
+              res.json({
+                'ok': true
+              })
+            }
+          })
+        } else {
+          errorResponse(res, 12, 400)
+        }
       } else {
-        errorResponse(res, 12, 400)
+        errorResponse(res, 13, 400)
       }
     }
   })
