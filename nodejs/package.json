@@ -1,0 +1,16 @@
+{
+  "name": "webhooks-queue",
+  "version": "0.1.0",
+  "description": "Service to store and run webhooks with Node.js and Cassandra",
+  "main": "main.js",
+  "scripts": {
+    "test": "node ./main.js"
+  },
+  "author": "E-Com Club",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "express": "4.x",
+    "body-parser": "1.x"
+  }
+}
