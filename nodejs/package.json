@@ -11,6 +11,7 @@
   "private": true,
   "dependencies": {
     "express": "4.x",
-    "body-parser": "1.x"
+    "body-parser": "1.x",
+    "cassandra-driver": "3.x"
   }
 }
