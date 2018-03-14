@@ -35,7 +35,7 @@ setInterval(() => {
             if (whk.method && whk.method !== '') {
               options.method = whk.method
               if (whk.body && whk.body !== '') {
-                options.data = whk.data
+                options.data = whk.body
               }
             }
 
