@@ -111,7 +111,7 @@ app.post('/add-to-queue.json', (req, res) => {
           cql += ', toTimestamp(now())) IF NOT EXISTS'
 
           // insert on database
-          conn.execute(cql, escape, { prepare: true }, function (err, results) {
+          conn.execute(cql, escape, { prepare: true }, function (err) {
             if (err) {
               errorResponse(res, 11, 500)
               logger.error(err)
