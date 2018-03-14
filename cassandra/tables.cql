@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS history (
   body text,
   status_code smallint,
   response text,
+  error varchar,
   date_time timestamp,
   PRIMARY KEY (store_id, id)
 ) WITH CLUSTERING ORDER BY (id DESC);
@@ -23,6 +24,7 @@ CREATE TABLE IF NOT EXISTS queue (
   headers varchar,
   method varchar,
   body text,
+  retry tinyint,
   date_time timestamp,
   PRIMARY KEY (trigger_id, date_time)
 ) WITH CLUSTERING ORDER BY (date_time ASC);
