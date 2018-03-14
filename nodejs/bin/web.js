@@ -104,11 +104,11 @@ app.post('/add-to-queue.json', (req, res) => {
               }
             }
           }
-          cql += ', date_time) VALUES(?'
+          cql += ', retry, date_time) VALUES(?'
           for (let i = 0; i < escape.length - 1; i++) {
             cql += ', ?'
           }
-          cql += ', toTimestamp(now())) IF NOT EXISTS'
+          cql += ', 0, toTimestamp(now())) IF NOT EXISTS'
 
           // insert on database
           conn.execute(cql, escape, { prepare: true }, function (err) {
