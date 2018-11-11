@@ -64,7 +64,7 @@ function saveToHistory (conn, whk, response, error) {
     }
     if (error && error.message) {
       cql += ', error'
-      params.push(error.message)
+      params.push(error.message + '; code ' + error.code)
     }
 
     cql += ', date_time) VALUES(?'
