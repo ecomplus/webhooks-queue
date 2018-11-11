@@ -13,6 +13,11 @@ function query (conn, cql, params, callback) {
   conn.execute(cql, params, { prepare: true }, function (err, results) {
     if (err) {
       logger.error(err)
+      // debug query and params
+      let msg = 'Invalid CQL query\n' +
+                cql + '\n' +
+                JSON.stringify(params, null, 2)
+      logger.error(new Error(msg))
     } else if (typeof callback === 'function') {
       callback(results)
     }
