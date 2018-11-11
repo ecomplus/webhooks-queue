@@ -33,7 +33,7 @@ function saveToHistory (conn, whk, response, error) {
       id = 1
     }
 
-    cql = 'INSERT INTO queue (id'
+    cql = 'INSERT INTO history (id'
     params = [ id ]
     for (let prop in whk) {
       if (whk.hasOwnProperty(prop)) {
