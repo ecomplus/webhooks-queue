@@ -74,7 +74,7 @@ function saveToHistory (conn, whk, response, error) {
 
 function removeFromQueue (conn, whk) {
   // remove webhook from queue
-  let cql = 'DELETE FROM queue WHERE trigger_id = ? AND date_time = ? LIMIT 1'
+  let cql = 'DELETE FROM queue WHERE trigger_id = ? AND date_time = ?'
   let params = [ whk.trigger_id, whk.date_time ]
   query(conn, cql, params)
 }
@@ -128,7 +128,7 @@ function sendRequest (conn, whk) {
       if (response && response.status >= 500 && response.status < 600 && whk.retry < 3) {
         // retry
         // keep webhook on queue
-        let cql = 'UPDATE queue SET retry = ? WHERE trigger_id = ? AND date_time = ? LIMIT 1'
+        let cql = 'UPDATE queue SET retry = ? WHERE trigger_id = ? AND date_time = ?'
         let params = [ whk.retry + 1, whk.trigger_id, whk.date_time ]
         query(conn, cql, params)
       } else {
