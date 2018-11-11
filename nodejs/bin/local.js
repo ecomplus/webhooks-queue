@@ -27,13 +27,14 @@ function query (conn, cql, params, callback) {
 function saveToHistory (conn, whk, response, error) {
   let cql, params
   // select current row id
-  cql = 'SELECT MAX(id) FROM history WHERE store_id = ?'
+  cql = 'SELECT MAX(id) AS prev FROM history WHERE store_id = ?'
   params = [ whk.store_id ]
   query(conn, cql, params, (results) => {
     let id
     if (results.rows.length) {
       // id is a counter
-      id = results.rows[0]['MAX(id)'] + 1
+      // bigint is returned as string
+      id = parseInt(results.rows[0]['prev'], 10) + 1
     } else {
       id = 1
     }
@@ -67,7 +68,7 @@ function saveToHistory (conn, whk, response, error) {
     }
 
     cql += ', date_time) VALUES(?'
-    for (let i = 0; i < escape.length - 1; i++) {
+    for (let i = 0; i < params.length - 1; i++) {
       cql += ', ?'
     }
     cql += ', toTimestamp(now())) IF NOT EXISTS'
