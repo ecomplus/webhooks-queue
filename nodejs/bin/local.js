@@ -140,6 +140,10 @@ function sendRequest (conn, whk) {
       } else {
         removeFromQueue(conn, whk)
       }
+      // debug unexpected connection error
+      if (error.code === 'ECONNRESET') {
+        logger.error('Axios failed\n' + JSON.stringify(options, null, 2))
+      }
       saveToHistory(conn, whk, response, error)
     })
   }, delay)
