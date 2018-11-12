@@ -167,19 +167,17 @@ setInterval(() => {
       // list webhooks limited by current timestamp
       let now = Date.now()
       query(conn, 'SELECT * FROM queue', [], ({ rows }) => {
-        for (let i = 0; i < rows.length; i++) {
-          let whk = rows[i]
-          if (new Date(whk.date_time).getTime() > now) {
-            break
+        rows.forEach(whk => {
+          if (new Date(whk.date_time).getTime() <= now) {
+            sendRequest(conn, whk)
+            // delete readed webhook
+            // Cassandra can DELETE one by one only
+            // https://docs.datastax.com/en/cql/3.3/cql/cql_reference/cqlDelete.html
+            let cql = 'DELETE FROM queue WHERE trigger_id = ? AND date_time = ?'
+            let params = [ whk.trigger_id, whk.date_time ]
+            query(conn, cql, params)
           }
-          sendRequest(conn, whk)
-          // delete readed webhook
-          // Cassandra can DELETE one by one only
-          // https://docs.datastax.com/en/cql/3.3/cql/cql_reference/cqlDelete.html
-          let cql = 'DELETE FROM queue WHERE trigger_id = ? AND date_time = ?'
-          let params = [ whk.trigger_id, whk.date_time ]
-          query(conn, cql, params)
-        }
+        })
       })
     }
   })
