@@ -79,76 +79,82 @@ function saveToHistory (conn, whk, response, error) {
 }
 
 function sendRequest (conn, whk) {
-  // wait 5 minutes per attempt
-  let delay = whk.retry * 300000
-  setTimeout(() => {
-    // preset axios options
-    let options = {
-      'maxRedirects': 3,
-      'responseType': 'text',
-      // max 30s, 5kb
-      'timeout': 30000,
-      'maxContentLength': 5000
-    }
+  // preset axios options
+  let options = {
+    'maxRedirects': 3,
+    'responseType': 'text',
+    // max 30s, 5kb
+    'timeout': 30000,
+    'maxContentLength': 5000
+  }
 
-    options.url = whk.uri
-    if (whk.method && whk.method !== '') {
-      options.method = whk.method
+  // request full absolute URI
+  options.url = whk.uri
+  if (whk.method && whk.method !== '') {
+    options.method = whk.method
+    // check method to send request payload
+    if (options.method !== 'GET') {
       if (whk.body && whk.body !== '') {
         options.data = whk.body
+      } else if (options.method === 'POST') {
+        // must have body data
+        options.data = '{}'
       }
     }
+  }
 
-    if (whk.headers) {
-      try {
-        options.headers = JSON.parse(whk.headers)
-      } catch (e) {
-        // reset
-        options.headers = {}
-      }
-    } else {
+  // request headers
+  if (whk.headers) {
+    try {
+      options.headers = JSON.parse(whk.headers)
+    } catch (e) {
+      // reset
       options.headers = {}
     }
-    options.headers['X-Store-ID'] = whk.store_id
-    options.headers['X-Trigger-Object-ID'] = whk.trigger_id
+  } else {
+    options.headers = {}
+  }
+  options.headers['X-Store-ID'] = whk.store_id
+  options.headers['X-Trigger-Object-ID'] = whk.trigger_id
 
-    // send request
-    axios(options).then(response => {
-      // successful
-      // perform database operations
-      saveToHistory(conn, whk, response)
-    })
+  // send request
+  axios(options).then(response => {
+    // successful
+    // perform database operations
+    saveToHistory(conn, whk, response)
+  })
 
-    .catch(error => {
-      let response = error.response
-      if (response && response.status >= 500 && response.status < 600 && whk.retry < 3) {
-        // retry
-        whk.retry++
-        // reinsert webhook on queue
-        let cql = 'INSERT INTO queue ('
-        let params = []
-        for (let column in whk) {
-          if (whk.hasOwnProperty(column)) {
-            cql += column + ', '
-            params.push(whk[column])
-          }
+  .catch(error => {
+    let response = error.response
+    if (response && response.status >= 500 && response.status < 600 && whk.retry < 3) {
+      // retry
+      whk.retry++
+      // 5 minutes delay per attempt
+      let timeuuid = (Date.now() + whk.retry * 300000)
+      // reinsert webhook on queue
+      let cql = 'INSERT INTO queue ('
+      let params = []
+      for (let column in whk) {
+        if (whk.hasOwnProperty(column) && column !== 'date_time') {
+          cql += column + ', '
+          params.push(whk[column])
         }
-        // remove last comma and complete CQL string
-        cql = cql.slice(0, -2) + ' VALUES(?'
-        for (let i = 1; i < params.length; i++) {
-          cql += ', ?'
-        }
-        cql += ') IF NOT EXISTS'
-        query(conn, cql, params)
       }
+      // remove last comma and complete CQL string
+      cql = 'date_time) VALUES('
+      for (let i = 0; i < params.length; i++) {
+        cql += '?, '
+      }
+      cql += 'toTimestamp(' + timeuuid + ')) IF NOT EXISTS'
+      query(conn, cql, params)
+    }
 
-      // debug unexpected connection error
-      if (error.code === 'ECONNRESET') {
-        logger.error('Axios failed\n' + JSON.stringify(options, null, 2))
-      }
-      saveToHistory(conn, whk, response, error)
-    })
-  }, delay)
+    // debug unexpected connection error
+    if (error.code === 'ECONNRESET') {
+      logger.error('Axios failed\n' + JSON.stringify(options, null, 2))
+    }
+    saveToHistory(conn, whk, response, error)
+  })
 }
 
 // read and run webhooks queue
@@ -158,7 +164,9 @@ setInterval(() => {
       logger.error(err)
     } else {
       // connected
-      query(conn, 'SELECT * FROM queue', [], (results) => {
+      // list webhooks limited by current timestamp
+      let cql = 'SELECT * FROM queue WHERE date_time <= toTimestamp(now())'
+      query(conn, cql, [], results => {
         results.rows.forEach(whk => {
           sendRequest(conn, whk)
           // delete readed webhook
