@@ -164,8 +164,10 @@ setInterval(() => {
           whk = results.rows[i]
           sendRequest(conn, whk)
         }
-        // delete readed webhooks until last timestamp
-        query(conn, 'DELETE FROM queue WHERE date_time <= ?', [ whk.date_time ])
+        if (whk) {
+          // delete readed webhooks until last timestamp
+          query(conn, 'DELETE FROM queue WHERE date_time <= ?', [ whk.date_time ])
+        }
       })
     }
   })
