@@ -166,7 +166,8 @@ setInterval(() => {
         }
         if (whk) {
           // delete readed webhooks until last timestamp
-          query(conn, 'DELETE FROM queue WHERE date_time <= ?', [ whk.date_time ])
+          let params = [ '', whk.date_time ]
+          query(conn, 'DELETE FROM queue WHERE trigger_id != ? AND date_time <= ?', params)
         }
       })
     }
