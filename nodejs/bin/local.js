@@ -141,7 +141,7 @@ function sendRequest (conn, whk) {
         }
       }
       // remove last comma and complete CQL string
-      cql = 'date_time) VALUES('
+      cql += 'date_time) VALUES('
       for (let i = 0; i < params.length; i++) {
         cql += '?, '
       }
@@ -165,9 +165,13 @@ setInterval(() => {
     } else {
       // connected
       // list webhooks limited by current timestamp
-      let cql = 'SELECT * FROM queue WHERE date_time <= toTimestamp(now())'
-      query(conn, cql, [], results => {
-        results.rows.forEach(whk => {
+      let now = Date.now()
+      query(conn, 'SELECT * FROM queue', [], ({ rows }) => {
+        for (let i = 0; i < rows.length; i++) {
+          let whk = rows[i]
+          if (new Date(whk.date_time).getTime() > now) {
+            break
+          }
           sendRequest(conn, whk)
           // delete readed webhook
           // Cassandra can DELETE one by one only
@@ -175,7 +179,7 @@ setInterval(() => {
           let cql = 'DELETE FROM queue WHERE trigger_id = ? AND date_time = ?'
           let params = [ whk.trigger_id, whk.date_time ]
           query(conn, cql, params)
-        })
+        }
       })
     }
   })
