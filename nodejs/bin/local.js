@@ -145,7 +145,7 @@ function sendRequest (conn, whk) {
       for (let i = 0; i < params.length; i++) {
         cql += '?, '
       }
-      cql += 'toTimestamp(' + timeuuid + ')) IF NOT EXISTS'
+      cql += timeuuid + ') IF NOT EXISTS'
       query(conn, cql, params)
     }
 
