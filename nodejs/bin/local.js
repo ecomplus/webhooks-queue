@@ -159,16 +159,15 @@ setInterval(() => {
     } else {
       // connected
       query(conn, 'SELECT * FROM queue', [], (results) => {
-        let whk
-        for (let i = 0; i < results.rows.length; i++) {
-          whk = results.rows[i]
+        results.rows.forEach(whk => {
           sendRequest(conn, whk)
-        }
-        if (whk) {
-          // delete readed webhooks until last timestamp
-          let params = [ '', whk.date_time ]
-          query(conn, 'DELETE FROM queue WHERE trigger_id != ? AND date_time <= ?', params)
-        }
+          // delete readed webhook
+          // Cassandra can DELETE one by one only
+          // https://docs.datastax.com/en/cql/3.3/cql/cql_reference/cqlDelete.html
+          let cql = 'DELETE FROM queue WHERE trigger_id = ? AND date_time = ?'
+          let params = [ whk.trigger_id, whk.date_time ]
+          query(conn, cql, params)
+        })
       })
     }
   })
