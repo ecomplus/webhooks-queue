@@ -78,13 +78,6 @@ function saveToHistory (conn, whk, response, error) {
   })
 }
 
-function removeFromQueue (conn, whk) {
-  // remove webhook from queue
-  let cql = 'DELETE FROM queue WHERE trigger_id = ? AND date_time = ?'
-  let params = [ whk.trigger_id, whk.date_time ]
-  query(conn, cql, params)
-}
-
 function sendRequest (conn, whk) {
   // wait 5 minutes per attempt
   let delay = whk.retry * 300000
@@ -120,26 +113,35 @@ function sendRequest (conn, whk) {
     options.headers['X-Trigger-Object-ID'] = whk.trigger_id
 
     // send request
-    axios(options)
-
-    .then(function (response) {
+    axios(options).then(response => {
       // successful
       // perform database operations
-      removeFromQueue(conn, whk)
       saveToHistory(conn, whk, response)
     })
 
-    .catch(function (error) {
+    .catch(error => {
       let response = error.response
       if (response && response.status >= 500 && response.status < 600 && whk.retry < 3) {
         // retry
-        // keep webhook on queue
-        let cql = 'UPDATE queue SET retry = ? WHERE trigger_id = ? AND date_time = ?'
-        let params = [ whk.retry + 1, whk.trigger_id, whk.date_time ]
+        whk.retry++
+        // reinsert webhook on queue
+        let cql = 'INSERT INTO queue ('
+        let params = []
+        for (let column in whk) {
+          if (whk.hasOwnProperty(column)) {
+            cql += column + ', '
+            params.push(whk[column])
+          }
+        }
+        // remove last comma and complete CQL string
+        cql = cql.slice(0, -2) + ' VALUES(?'
+        for (let i = 1; i < params.length; i++) {
+          cql += ', ?'
+        }
+        cql += ') IF NOT EXISTS'
         query(conn, cql, params)
-      } else {
-        removeFromQueue(conn, whk)
       }
+
       // debug unexpected connection error
       if (error.code === 'ECONNRESET') {
         logger.error('Axios failed\n' + JSON.stringify(options, null, 2))
@@ -156,12 +158,15 @@ setInterval(() => {
       logger.error(err)
     } else {
       // connected
-      query(conn, 'SELECT * FROM queue', [], function (results) {
+      query(conn, 'SELECT * FROM queue', [], (results) => {
+        let whk
         for (let i = 0; i < results.rows.length; i++) {
-          let whk = results.rows[i]
+          whk = results.rows[i]
           sendRequest(conn, whk)
         }
+        // delete readed webhooks until last timestamp
+        query(conn, 'DELETE FROM queue WHERE date_time <= ?', [ whk.date_time ])
       })
     }
   })
-}, 40000)
+}, 3000)
