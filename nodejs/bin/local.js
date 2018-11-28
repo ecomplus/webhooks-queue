@@ -197,16 +197,18 @@ setInterval(() => {
               }
               // next
               get()
+            } else {
+              // all done
+              // back scheduled webhooks to queue
+              backToQueue.forEach(addToQueue)
             }
           } else {
             logger.error(err)
           }
         })
       }
+      // start
       get()
-
-      // back scheduled webhooks to queue
-      backToQueue.forEach(addToQueue)
     }
   })
 }, 3000)
