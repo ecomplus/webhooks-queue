@@ -175,6 +175,10 @@ setInterval(() => {
             if (json) {
               let whk = JSON.parse(json)
               if (whk.date_time <= now) {
+                if (typeof whk.retry !== 'number') {
+                  // undefined
+                  whk.retry = 0
+                }
                 sendRequest(conn, whk)
               } else {
                 // re-insert to queue
