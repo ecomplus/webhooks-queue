@@ -13,6 +13,8 @@
     "express": "4.x",
     "axios": "0.x",
     "body-parser": "1.x",
-    "cassandra-driver": "3.x"
+    "cassandra-driver": "3.x",
+    "console-files": "2.x",
+    "redis": "2.x"
   }
 }

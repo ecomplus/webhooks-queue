@@ -1,9 +1,12 @@
 'use strict'
 
 // log on files
-const logger = require('./../lib/Logger.js')
+const logger = require('console-files')
 // connect to database
 const db = require('./../lib/Database.js')
+// setup redis client
+const redis = require('redis')
+const client = redis.createClient()
 
 // axios HTTP client
 // https://github.com/axios/axios
@@ -130,23 +133,9 @@ function sendRequest (conn, whk) {
       // retry
       whk.retry++
       // 5 minutes delay per attempt
-      let timeuuid = (Date.now() + whk.retry * 300000)
+      whk.date_time = (Date.now() + whk.retry * 300000)
       // reinsert webhook on queue
-      let cql = 'INSERT INTO queue ('
-      let params = []
-      for (let column in whk) {
-        if (whk.hasOwnProperty(column) && column !== 'date_time') {
-          cql += column + ', '
-          params.push(whk[column])
-        }
-      }
-      // remove last comma and complete CQL string
-      cql += 'date_time) VALUES('
-      for (let i = 0; i < params.length; i++) {
-        cql += '?, '
-      }
-      cql += timeuuid + ') IF NOT EXISTS'
-      query(conn, cql, params)
+      client.rpush('queue', JSON.stringify(whk), err => logger.error(err))
     }
 
     // debug unexpected connection error
@@ -159,26 +148,36 @@ function sendRequest (conn, whk) {
 
 // read and run webhooks queue
 setInterval(() => {
-  db({}, function (err, _obj, conn) {
+  db({}, (err, _obj, conn) => {
     if (err) {
       logger.error(err)
     } else {
       // connected
       // list webhooks limited by current timestamp
       let now = Date.now()
-      query(conn, 'SELECT * FROM queue', [], ({ rows }) => {
-        rows.forEach(whk => {
-          if (new Date(whk.date_time).getTime() <= now) {
-            sendRequest(conn, whk)
-            // delete readed webhook
-            // Cassandra can DELETE one by one only
-            // https://docs.datastax.com/en/cql/3.3/cql/cql_reference/cqlDelete.html
-            let cql = 'DELETE FROM queue WHERE trigger_id = ? AND date_time = ?'
-            let params = [ whk.trigger_id, whk.date_time ]
-            query(conn, cql, params)
+
+      // get webhook from Redis list
+      const get = () => {
+        // https://redis.io/commands/lpop
+        client.lpop('queue', (err, json) => {
+          if (!err) {
+            if (json) {
+              let whk = JSON.parse(json)
+              if (whk.date_time <= now) {
+                sendRequest(conn, whk)
+              } else {
+                // re-insert to queue
+                client.lpush('queue', json, err => logger.error(err))
+              }
+              // next
+              get()
+            }
+          } else {
+            logger.error(err)
           }
         })
-      })
+      }
+      get()
     }
   })
 }, 3000)

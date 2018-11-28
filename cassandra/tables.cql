@@ -16,17 +16,3 @@ CREATE TABLE IF NOT EXISTS history (
   date_time timestamp,
   PRIMARY KEY (store_id, id)
 ) WITH CLUSTERING ORDER BY (id DESC);
-
-CREATE TABLE IF NOT EXISTS queue (
-  trigger_id varchar,
-  store_id int,
-  uri varchar,
-  headers varchar,
-  method varchar,
-  body text,
-  retry tinyint,
-  date_time timestamp,
-  PRIMARY KEY (trigger_id, date_time)
-) WITH CLUSTERING ORDER BY (date_time ASC);
-
-CREATE INDEX ON queue (store_id);

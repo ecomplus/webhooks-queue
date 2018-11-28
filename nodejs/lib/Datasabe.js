@@ -1,7 +1,7 @@
 'use strict'
 
 // log on files
-// const logger = require('./Logger.js')
+// const logger = require('console-files')
 
 const cassandra = require('cassandra-driver')
 // global connection object
