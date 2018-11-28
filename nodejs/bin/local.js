@@ -182,7 +182,7 @@ setInterval(() => {
                 sendRequest(conn, whk)
               } else {
                 // re-insert to queue
-                client.lpush('queue', json, err => logger.error(err))
+                client.rpush('queue', json, err => logger.error(err))
               }
               // next
               get()
