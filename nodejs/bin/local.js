@@ -32,7 +32,7 @@ function saveToHistory (conn, whk, response, error) {
   // select current row id
   cql = 'SELECT MAX(id) AS prev FROM history WHERE store_id = ?'
   params = [ whk.store_id ]
-  query(conn, cql, params, (results) => {
+  query(conn, cql, params, results => {
     let id
     if (results.rows.length) {
       // id is a counter
@@ -63,7 +63,7 @@ function saveToHistory (conn, whk, response, error) {
     // store response
     if (response) {
       cql += ', status_code, response'
-      params.push(response.status, response.data)
+      params.push(response.status, JSON.stringify(response.data))
     }
     if (error && error.message) {
       cql += ', error'
