@@ -146,7 +146,7 @@ function sendRequest (conn, whk) {
       // 5 minutes delay per attempt
       whk.date_time = (Date.now() + whk.retry * 300000)
       // reinsert webhook on queue
-      client.rpush('queue', JSON.stringify(whk), err => logger.error(err))
+      addToQueue(JSON.stringify(whk))
     }
 
     // debug unexpected connection error
@@ -154,6 +154,16 @@ function sendRequest (conn, whk) {
       logger.error('Axios failed\n' + JSON.stringify(options, null, 2))
     }
     saveToHistory(conn, whk, response, error)
+  })
+}
+
+const addToQueue = json => {
+  // insert on Redis list
+  // https://redis.io/commands/rpush
+  client.rpush('queue', json, err => {
+    if (err) {
+      logger.error(err)
+    }
   })
 }
 
@@ -196,9 +206,7 @@ setInterval(() => {
       get()
 
       // back scheduled webhooks to queue
-      backToQueue.forEach(json => {
-        client.rpush('queue', json, err => logger.error(err))
-      })
+      backToQueue.forEach(addToQueue)
     }
   })
 }, 3000)
