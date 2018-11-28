@@ -56,14 +56,25 @@ function saveToHistory (conn, whk, response, error) {
             // complete cql query string
             cql += ', ' + prop
             // add param
-            params.push(whk[prop])
+            let param = whk[prop]
+            if (typeof param === 'object' && param !== null) {
+              // headers object ?
+              param = JSON.stringify(param)
+            }
+            params.push(param)
         }
       }
     }
+
     // store response
     if (response) {
       cql += ', status_code, response'
-      params.push(response.status, JSON.stringify(response.data))
+      let body = response.data
+      if (typeof body !== 'string' && body !== null) {
+        // parse to string
+        body = JSON.stringify(body)
+      }
+      params.push(response.status, body)
     }
     if (error && error.message) {
       cql += ', error'
