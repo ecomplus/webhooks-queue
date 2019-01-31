@@ -118,7 +118,9 @@ function sendRequest (conn, whk) {
   }
 
   // request headers
-  if (whk.headers) {
+  if (typeof whk.headers === 'object' && whk.headers !== null) {
+    options.headers = whk.headers
+  } else if (typeof whk.headers === 'string') {
     try {
       options.headers = JSON.parse(whk.headers)
     } catch (e) {
@@ -138,23 +140,23 @@ function sendRequest (conn, whk) {
     saveToHistory(conn, whk, response)
   })
 
-  .catch(error => {
-    let response = error.response
-    if (response && response.status >= 500 && response.status < 600 && whk.retry < 3) {
-      // retry
-      whk.retry++
-      // 5 minutes delay per attempt
-      whk.date_time = (Date.now() + whk.retry * 300000)
-      // reinsert webhook on queue
-      addToQueue(JSON.stringify(whk))
-    }
+    .catch(error => {
+      let response = error.response
+      if (response && response.status >= 500 && response.status < 600 && whk.retry < 3) {
+        // retry
+        whk.retry++
+        // 5 minutes delay per attempt
+        whk.date_time = (Date.now() + whk.retry * 300000)
+        // reinsert webhook on queue
+        addToQueue(JSON.stringify(whk))
+      }
 
-    // debug unexpected connection error
-    if (error.code === 'ECONNRESET') {
-      logger.error('Axios failed\n' + JSON.stringify(options, null, 2))
-    }
-    saveToHistory(conn, whk, response, error)
-  })
+      // debug unexpected connection error
+      if (error.code === 'ECONNRESET') {
+        logger.error('Axios failed\n' + JSON.stringify(options, null, 2))
+      }
+      saveToHistory(conn, whk, response, error)
+    })
 }
 
 const addToQueue = json => {
