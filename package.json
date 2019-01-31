@@ -1,0 +1,11 @@
+{
+  "name": "webhooks-queue-linter",
+  "version": "0.0.1",
+  "description": "Setup standard JS linter on repo root",
+  "author": "E-Com Club",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "standard": "*"
+  }
+}
