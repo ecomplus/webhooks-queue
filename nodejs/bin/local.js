@@ -70,17 +70,21 @@ function saveToHistory (conn, whk, response, error) {
     if (response) {
       cql += ', status_code, response'
       let body = response.data
+      let resContent = ''
       if (typeof body !== 'string' && body !== null) {
         // parse to string
-        body = JSON.stringify(body)
+        // limit 5kb
+        resContent = JSON.stringify(body).substring(0, 5000)
       }
-      params.push(response.status, body)
+      params.push(response.status, resContent)
     }
+    // save error message
     if (error && error.message) {
       cql += ', error'
       params.push(error.message + '; code ' + error.code)
     }
 
+    // new timestamp
     cql += ', date_time) VALUES(?'
     for (let i = 0; i < params.length - 1; i++) {
       cql += ', ?'
@@ -97,9 +101,9 @@ function sendRequest (conn, whk) {
   let options = {
     'maxRedirects': 3,
     'responseType': 'text',
-    // max 30s, 5kb
+    // max 30s, 8mb
     'timeout': 30000,
-    'maxContentLength': 5000
+    'maxContentLength': 8000000
   }
 
   // request full absolute URI
