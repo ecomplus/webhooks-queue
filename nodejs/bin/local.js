@@ -28,72 +28,57 @@ function query (conn, cql, params, callback) {
 }
 
 function saveToHistory (conn, whk, response, error) {
-  let cql, params
-  // select current row id
-  cql = 'SELECT MAX(id) AS prev FROM history WHERE store_id = ?'
-  params = [ whk.store_id ]
-  query(conn, cql, params, results => {
-    let id
-    if (results.rows.length) {
-      // id is a counter
-      // bigint is returned as string
-      id = parseInt(results.rows[0]['prev'], 10) + 1
-    } else {
-      id = 1
-    }
+  let cql = 'INSERT INTO history (id'
+  let params = [ Date.now() ]
+  for (let prop in whk) {
+    if (whk.hasOwnProperty(prop)) {
+      switch (prop) {
+        case 'retry':
+        case 'date_time':
+          // ignore
+          break
 
-    cql = 'INSERT INTO history (id'
-    params = [ id ]
-    for (let prop in whk) {
-      if (whk.hasOwnProperty(prop)) {
-        switch (prop) {
-          case 'retry':
-          case 'date_time':
-            // ignore
-            break
-
-          default:
-            // complete cql query string
-            cql += ', ' + prop
-            // add param
-            let param = whk[prop]
-            if (typeof param === 'object' && param !== null) {
-              // headers object ?
-              param = JSON.stringify(param)
-            }
-            params.push(param)
-        }
+        default:
+          // complete cql query string
+          cql += ', ' + prop
+          // add param
+          let param = whk[prop]
+          if (typeof param === 'object' && param !== null) {
+            // headers object ?
+            param = JSON.stringify(param)
+          }
+          params.push(param)
       }
     }
+  }
 
-    // store response
-    if (response) {
-      cql += ', status_code, response'
-      let body = response.data
-      let resContent = ''
-      if (typeof body !== 'string' && body !== null) {
-        // parse to string
-        // limit 5kb
-        resContent = JSON.stringify(body).substring(0, 5000)
-      }
-      params.push(response.status, resContent)
+  // store response
+  if (response) {
+    cql += ', status_code, response'
+    let body = response.data
+    let resContent = ''
+    if (typeof body !== 'string' && body !== null) {
+      // parse to string
+      // limit 5kb
+      resContent = JSON.stringify(body).substring(0, 5000)
     }
-    // save error message
-    if (error && error.message) {
-      cql += ', error'
-      params.push(error.message + '; code ' + error.code)
-    }
+    params.push(response.status, resContent)
+  }
+  // save error message
+  if (error && error.message) {
+    cql += ', error'
+    params.push(error.message + '; code ' + error.code)
+  }
 
-    // new timestamp
-    cql += ', date_time) VALUES(?'
-    for (let i = 0; i < params.length - 1; i++) {
-      cql += ', ?'
-    }
-    cql += ', toTimestamp(now())) IF NOT EXISTS'
+  // new timestamp
+  cql += ', date_time) VALUES(?'
+  for (let i = 0; i < params.length - 1; i++) {
+    cql += ', ?'
+  }
+  cql += ', toTimestamp(now())) IF NOT EXISTS'
 
-    // insert on database
-    query(conn, cql, params)
-  })
+  // insert on database
+  query(conn, cql, params)
 }
 
 function sendRequest (conn, whk) {
