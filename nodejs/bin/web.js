@@ -25,9 +25,9 @@ if (typeof httpPort !== 'number' || isNaN(httpPort)) {
 }
 
 // new Express application
-let app = Express()
+const app = Express()
 
-app.use(bodyParser.json())
+app.use(bodyParser.json({ limit: '10mb' }))
 
 function errorResponse (res, errorCode, status) {
   // default request error response
@@ -36,8 +36,8 @@ function errorResponse (res, errorCode, status) {
   }
   res.status(status)
   res.json({
-    'error_code': errorCode,
-    'status': status
+    error_code: errorCode,
+    status: status
   })
 }
 
