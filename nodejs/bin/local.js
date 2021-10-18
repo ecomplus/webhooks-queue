@@ -87,7 +87,7 @@ function sendRequest (conn, whk) {
     'maxRedirects': 3,
     'responseType': 'text',
     // max 30s, 8mb
-    'timeout': 20000,
+    'timeout': 30000,
     'maxContentLength': 8000000
   }
 
@@ -170,7 +170,6 @@ setInterval(() => {
       let backToQueue = []
 
       // get webhook from Redis list
-      let count = 0
       const get = () => {
         // https://redis.io/commands/lpop
         client.lpop('queue', (err, json) => {
@@ -182,8 +181,7 @@ setInterval(() => {
                   // undefined
                   whk.retry = 0
                 }
-                setTimeout(() => sendRequest(conn, whk), count * 100)
-                count++
+                sendRequest(conn, whk)
               } else {
                 // re-insert to queue
                 backToQueue.push(json)
@@ -204,4 +202,4 @@ setInterval(() => {
       get()
     }
   })
-}, 1000)
+}, 3000)
