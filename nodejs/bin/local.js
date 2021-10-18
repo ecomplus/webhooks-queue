@@ -167,7 +167,7 @@ setInterval(() => {
       // connected
       // list webhooks limited by current timestamp
       let now = Date.now()
-      let backToQueue = []
+      const backToQueue = []
 
       // get webhook from Redis list
       const get = () => {
@@ -192,6 +192,7 @@ setInterval(() => {
               // all done
               // back scheduled webhooks to queue
               backToQueue.forEach(addToQueue)
+              backToQueue.splice(0)
             }
           } else {
             logger.error(err)
@@ -202,4 +203,4 @@ setInterval(() => {
       get()
     }
   })
-}, 3000)
+}, 1000)
