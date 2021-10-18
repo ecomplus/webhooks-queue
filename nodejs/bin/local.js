@@ -159,6 +159,8 @@ const addToQueue = json => {
 }
 
 // read and run webhooks queue
+const backToQueue = []
+let backToQueueTimer = null
 setInterval(() => {
   db({}, (err, _obj, conn) => {
     if (err) {
@@ -167,7 +169,6 @@ setInterval(() => {
       // connected
       // list webhooks limited by current timestamp
       let now = Date.now()
-      const backToQueue = []
 
       // get webhook from Redis list
       const get = () => {
@@ -188,11 +189,14 @@ setInterval(() => {
               }
               // next
               get()
-            } else {
+            } else if (!backToQueueTimer) {
               // all done
               // back scheduled webhooks to queue
-              backToQueue.forEach(addToQueue)
-              backToQueue.splice(0)
+              backToQueueTimer = setTimeout(() => {
+                backToQueue.forEach(addToQueue)
+                backToQueue.splice(0)
+                backToQueueTimer = null
+              }, 800)
             }
           } else {
             logger.error(err)
