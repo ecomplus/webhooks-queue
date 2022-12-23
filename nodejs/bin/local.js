@@ -160,6 +160,7 @@ const addToQueue = json => {
 
 // read and run webhooks queue
 const backToQueue = []
+const recentWebhooks = []
 let backToQueueTimer = null
 setInterval(() => {
   db({}, (err, _obj, conn) => {
@@ -177,12 +178,20 @@ setInterval(() => {
           if (!err) {
             if (json) {
               let whk = JSON.parse(json)
-              if (whk.date_time <= now) {
+              const whkKey = whk.store_id + whk.uri
+              if (whk.date_time <= now || recentWebhooks.includes(whkKey)) {
                 if (typeof whk.retry !== 'number') {
                   // undefined
                   whk.retry = 0
                 }
                 sendRequest(conn, whk)
+                recentWebhooks.push(whkKey)
+                setTimeout(() => {
+                  const index = recentWebhooks.indexOf(whkKey)
+                  if (index > -1) {
+                    recentWebhooks.splice(index, 1)
+                  }
+                }, 1200)
               } else {
                 // re-insert to queue
                 backToQueue.push(json)
